@@ -10,6 +10,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player_platform_interface/video_player_platform_interface.dart';
+import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
 import 'src/closed_caption_file.dart';
 
@@ -221,6 +222,8 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
         dataSourceType = DataSourceType.asset,
         formatHint = null,
         httpHeaders = const <String, String>{},
+        youtubeVideoQuality = null,
+        isYTLink = null,
         super(VideoPlayerValue(duration: Duration.zero));
 
   /// Constructs a [VideoPlayerController] playing a video from obtained from
@@ -232,13 +235,14 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   /// the video format detection code.
   /// [httpHeaders] option allows to specify HTTP headers
   /// for the request to the [dataSource].
-  VideoPlayerController.network(
-    this.dataSource, {
-    this.formatHint,
-    Future<ClosedCaptionFile>? closedCaptionFile,
-    this.videoPlayerOptions,
-    this.httpHeaders = const <String, String>{},
-  })  : _closedCaptionFileFuture = closedCaptionFile,
+  VideoPlayerController.network(this.dataSource,
+      {this.formatHint,
+      Future<ClosedCaptionFile>? closedCaptionFile,
+      this.videoPlayerOptions,
+      this.httpHeaders = const <String, String>{},
+      this.youtubeVideoQuality,
+      this.isYTLink})
+      : _closedCaptionFileFuture = closedCaptionFile,
         dataSourceType = DataSourceType.network,
         package = null,
         super(VideoPlayerValue(duration: Duration.zero));
@@ -255,6 +259,8 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
         package = null,
         formatHint = null,
         httpHeaders = const <String, String>{},
+        youtubeVideoQuality = null,
+        isYTLink = null,
         super(VideoPlayerValue(duration: Duration.zero));
 
   /// Constructs a [VideoPlayerController] playing a video from a contentUri.
@@ -262,7 +268,10 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   /// This will load the video from the input content-URI.
   /// This is supported on Android only.
   VideoPlayerController.contentUri(Uri contentUri,
-      {Future<ClosedCaptionFile>? closedCaptionFile, this.videoPlayerOptions})
+      {Future<ClosedCaptionFile>? closedCaptionFile,
+      this.videoPlayerOptions,
+      this.youtubeVideoQuality,
+      this.isYTLink})
       : assert(defaultTargetPlatform == TargetPlatform.android,
             'VideoPlayerController.contentUri is only supported on Android.'),
         _closedCaptionFileFuture = closedCaptionFile,
@@ -276,6 +285,12 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   /// The URI to the video file. This will be in different formats depending on
   /// the [DataSourceType] of the original video.
   final String dataSource;
+
+  /// youtube video quality, default: VideoQuality.medium360
+  final VideoQuality? youtubeVideoQuality;
+
+  /// the URI to the youtube or not.
+  final bool? isYTLink;
 
   /// HTTP headers used for the request to the [dataSource].
   /// Only for [VideoPlayerController.network].
@@ -314,6 +329,34 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   @visibleForTesting
   int get textureId => _textureId;
 
+  /// To Get VideoId from Url
+  static String? _getIdFromUrl(String url, [bool trimWhitespaces = true]) {
+    List<RegExp> _regexps = [
+      RegExp(
+          r'^https:\/\/(?:www\.|m\.)?youtube\.com\/watch\?v=([_\-a-zA-Z0-9]{11}).*$'),
+      RegExp(
+          r'^https:\/\/(?:www\.|m\.)?youtube(?:-nocookie)?\.com\/embed\/([_\-a-zA-Z0-9]{11}).*$'),
+      RegExp(r'^https:\/\/youtu\.be\/([_\-a-zA-Z0-9]{11}).*$')
+    ];
+
+    if (url == null || url.isEmpty) {
+      return null;
+    }
+
+    if (trimWhitespaces) {
+      url = url.trim();
+    }
+
+    for (RegExp exp in _regexps) {
+      final Match? match = exp.firstMatch(url);
+      if (match != null && match.groupCount >= 1) {
+        return match.group(1);
+      }
+    }
+
+    return null;
+  }
+
   /// Attempts to open the given [dataSource] and load metadata about the video.
   Future<void> initialize() async {
     final bool allowBackgroundPlayback =
@@ -323,6 +366,36 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
     }
     _lifeCycleObserver?.initialize();
     _creatingCompleter = Completer<void>();
+
+    final VideoQuality quality = youtubeVideoQuality ?? VideoQuality.medium360;
+
+    String finalYoutubeUrl = dataSource;
+    if (_getIdFromUrl(dataSource) != null && (isYTLink ?? false)) {
+      try {
+        Map<String, String> videoUrls = Map();
+        final String? _videoId = _getIdFromUrl(dataSource);
+        String _fetchUrl = "";
+
+        YoutubeExplode yt = YoutubeExplode();
+
+        final StreamManifest manifest =
+            await yt.videos.streamsClient.getManifest(_videoId);
+
+        Uri? videoUri;
+        for (final MuxedStreamInfo m in manifest.muxed) {
+          if (quality == m.videoQuality) {
+            videoUri = m.url;
+          }
+        }
+        if (videoUri == null) {
+          finalYoutubeUrl = manifest.muxed.first.url.toString();
+        } else {
+          finalYoutubeUrl = videoUri.toString();
+        }
+      } catch (err) {
+        throw 'getIdFromUrl error: $err';
+      }
+    }
 
     late DataSource dataSourceDescription;
     switch (dataSourceType) {
@@ -336,7 +409,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
       case DataSourceType.network:
         dataSourceDescription = DataSource(
           sourceType: DataSourceType.network,
-          uri: dataSource,
+          uri: finalYoutubeUrl,
           formatHint: formatHint,
           httpHeaders: httpHeaders,
         );
@@ -350,7 +423,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
       case DataSourceType.contentUri:
         dataSourceDescription = DataSource(
           sourceType: DataSourceType.contentUri,
-          uri: dataSource,
+          uri: finalYoutubeUrl,
         );
         break;
     }
