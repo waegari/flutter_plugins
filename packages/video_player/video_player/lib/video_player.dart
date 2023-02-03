@@ -435,7 +435,9 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
 
     _textureId = (await _videoPlayerPlatform.create(dataSourceDescription)) ??
         kUninitializedTextureId;
-    _creatingCompleter!.complete(null);
+    if (_creatingCompleter != null && !_creatingCompleter!.isCompleted) {
+      _creatingCompleter!.complete(null);
+    }
     final Completer<void> initializingCompleter = Completer<void>();
 
     void eventListener(VideoEvent event) {
