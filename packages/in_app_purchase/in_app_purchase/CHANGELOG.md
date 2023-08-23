@@ -1,7 +1,3 @@
-## 3.1.4
-
-* Updates iOS minimum version in README.
-
 ## 3.1.3
 
 * Ignores a lint in the example app for backwards compatibility.

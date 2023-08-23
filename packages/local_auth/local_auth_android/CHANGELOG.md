@@ -1,8 +1,6 @@
-## 1.0.18
+## NEXT
 
 * Updates minimum Flutter version to 3.0.
-* Updates androidx.core version to 1.9.0.
-* Upgrades compile SDK version to 33.
 
 ## 1.0.17
 

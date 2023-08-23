@@ -1,6 +1,6 @@
-## 6.1.0
+## NEXT
 
-* Updates minimum Flutter version to 3.3 and iOS 11.
+* Updates minimum Flutter version to 3.0.
 
 ## 6.0.18
 

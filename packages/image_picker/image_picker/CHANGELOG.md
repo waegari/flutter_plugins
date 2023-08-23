@@ -1,6 +1,4 @@
-## 0.8.6+2
-
-* Updates `NSPhotoLibraryUsageDescription` description in README.
+## NEXT
 
 * Updates minimum Flutter version to 3.0.
 

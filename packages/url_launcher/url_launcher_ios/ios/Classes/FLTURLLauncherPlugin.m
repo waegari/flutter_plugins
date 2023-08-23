@@ -6,6 +6,7 @@
 
 #import "FLTURLLauncherPlugin.h"
 
+API_AVAILABLE(ios(9.0))
 @interface FLTURLLaunchSession : NSObject <SFSafariViewControllerDelegate>
 
 @property(copy, nonatomic) FlutterResult flutterResult;
@@ -29,7 +30,7 @@
 }
 
 - (void)safariViewController:(SFSafariViewController *)controller
-      didCompleteInitialLoad:(BOOL)didLoadSuccessfully {
+      didCompleteInitialLoad:(BOOL)didLoadSuccessfully API_AVAILABLE(ios(9.0)) {
   if (didLoadSuccessfully) {
     self.flutterResult(@YES);
   } else {
@@ -40,7 +41,7 @@
   }
 }
 
-- (void)safariViewControllerDidFinish:(SFSafariViewController *)controller {
+- (void)safariViewControllerDidFinish:(SFSafariViewController *)controller API_AVAILABLE(ios(9.0)) {
   [controller dismissViewControllerAnimated:YES completion:nil];
   self.didFinish();
 }
@@ -51,6 +52,7 @@
 
 @end
 
+API_AVAILABLE(ios(9.0))
 @interface FLTURLLauncherPlugin ()
 
 @property(strong, nonatomic) FLTURLLaunchSession *currentSession;
@@ -97,16 +99,24 @@
   NSURL *url = [NSURL URLWithString:urlString];
   UIApplication *application = [UIApplication sharedApplication];
 
-  NSNumber *universalLinksOnly = call.arguments[@"universalLinksOnly"] ?: @0;
-  NSDictionary *options = @{UIApplicationOpenURLOptionUniversalLinksOnly : universalLinksOnly};
-  [application openURL:url
-                options:options
-      completionHandler:^(BOOL success) {
-        result(@(success));
-      }];
+  if (@available(iOS 10.0, *)) {
+    NSNumber *universalLinksOnly = call.arguments[@"universalLinksOnly"] ?: @0;
+    NSDictionary *options = @{UIApplicationOpenURLOptionUniversalLinksOnly : universalLinksOnly};
+    [application openURL:url
+                  options:options
+        completionHandler:^(BOOL success) {
+          result(@(success));
+        }];
+  } else {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+    BOOL success = [application openURL:url];
+#pragma clang diagnostic pop
+    result(@(success));
+  }
 }
 
-- (void)launchURLInVC:(NSString *)urlString result:(FlutterResult)result {
+- (void)launchURLInVC:(NSString *)urlString result:(FlutterResult)result API_AVAILABLE(ios(9.0)) {
   NSURL *url = [NSURL URLWithString:urlString];
   self.currentSession = [[FLTURLLaunchSession alloc] initWithUrl:url withFlutterResult:result];
   __weak typeof(self) weakSelf = self;
@@ -118,7 +128,7 @@
                                      completion:nil];
 }
 
-- (void)closeWebViewWithResult:(FlutterResult)result {
+- (void)closeWebViewWithResult:(FlutterResult)result API_AVAILABLE(ios(9.0)) {
   if (self.currentSession != nil) {
     [self.currentSession close];
   }

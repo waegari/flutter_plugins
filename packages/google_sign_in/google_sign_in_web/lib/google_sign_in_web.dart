@@ -5,22 +5,23 @@
 import 'dart:async';
 import 'dart:html' as html;
 
-import 'package:flutter/foundation.dart' show visibleForTesting, kDebugMode;
-import 'package:flutter/services.dart' show PlatformException;
+import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'package:flutter/services.dart';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
-import 'package:google_identity_services_web/loader.dart' as loader;
 import 'package:google_sign_in_platform_interface/google_sign_in_platform_interface.dart';
+import 'package:js/js.dart';
 
-import 'src/gis_client.dart';
+import 'src/js_interop/gapiauth2.dart' as auth2;
+import 'src/load_gapi.dart' as gapi;
+import 'src/utils.dart' show gapiUserToPluginUserData;
 
-/// The `name` of the meta-tag to define a ClientID in HTML.
-const String clientIdMetaName = 'google-signin-client_id';
+const String _kClientIdMetaSelector = 'meta[name=google-signin-client_id]';
+const String _kClientIdAttributeName = 'content';
 
-/// The selector used to find the meta-tag that defines a ClientID in HTML.
-const String clientIdMetaSelector = 'meta[name=$clientIdMetaName]';
-
-/// The attribute name that stores the Client ID in the meta-tag that defines a Client ID in HTML.
-const String clientIdAttributeName = 'content';
+/// This is only exposed for testing. It shouldn't be accessed by users of the
+/// plugin as it could break at any point.
+@visibleForTesting
+String gapiUrl = 'https://apis.google.com/js/platform.js';
 
 /// Implementation of the google_sign_in plugin for Web.
 class GoogleSignInPlugin extends GoogleSignInPlatform {
@@ -28,23 +29,17 @@ class GoogleSignInPlugin extends GoogleSignInPlatform {
   /// background.
   ///
   /// The plugin is completely initialized when [initialized] completed.
-  GoogleSignInPlugin({@visibleForTesting bool debugOverrideLoader = false}) {
-    autoDetectedClientId = html
-        .querySelector(clientIdMetaSelector)
-        ?.getAttribute(clientIdAttributeName);
+  GoogleSignInPlugin() {
+    _autoDetectedClientId = html
+        .querySelector(_kClientIdMetaSelector)
+        ?.getAttribute(_kClientIdAttributeName);
 
-    if (debugOverrideLoader) {
-      _jsSdkLoadedFuture = Future<bool>.value(true);
-    } else {
-      _jsSdkLoadedFuture = loader.loadWebSdk();
-    }
+    _isGapiInitialized = gapi.inject(gapiUrl).then((_) => gapi.init());
   }
 
-  late Future<void> _jsSdkLoadedFuture;
+  late Future<void> _isGapiInitialized;
+  late Future<void> _isAuthInitialized;
   bool _isInitCalled = false;
-
-  // The instance of [GisSdkClient] backing the plugin.
-  late GisSdkClient _gisClient;
 
   // This method throws if init or initWithParams hasn't been called at some
   // point in the past. It is used by the [initialized] getter to ensure that
@@ -58,16 +53,14 @@ class GoogleSignInPlugin extends GoogleSignInPlatform {
     }
   }
 
-  /// A future that resolves when the SDK has been correctly loaded.
+  /// A future that resolves when both GAPI and Auth2 have been correctly initialized.
   @visibleForTesting
   Future<void> get initialized {
     _assertIsInitCalled();
-    return _jsSdkLoadedFuture;
+    return Future.wait(<Future<void>>[_isGapiInitialized, _isAuthInitialized]);
   }
 
-  /// Stores the client ID if it was set in a meta-tag of the page.
-  @visibleForTesting
-  late String? autoDetectedClientId;
+  String? _autoDetectedClientId;
 
   /// Factory method that initializes the plugin with [GoogleSignInPlatform].
   static void registerWith(Registrar registrar) {
@@ -90,11 +83,8 @@ class GoogleSignInPlugin extends GoogleSignInPlatform {
   }
 
   @override
-  Future<void> initWithParams(
-    SignInInitParameters params, {
-    @visibleForTesting GisSdkClient? overrideClient,
-  }) async {
-    final String? appClientId = params.clientId ?? autoDetectedClientId;
+  Future<void> initWithParams(SignInInitParameters params) async {
+    final String? appClientId = params.clientId ?? _autoDetectedClientId;
     assert(
         appClientId != null,
         'ClientID not set. Either set it on a '
@@ -110,95 +100,141 @@ class GoogleSignInPlugin extends GoogleSignInPlatform {
         'Check https://developers.google.com/identity/protocols/googlescopes '
         'for a list of valid OAuth 2.0 scopes.');
 
-    await _jsSdkLoadedFuture;
+    await _isGapiInitialized;
 
-    _gisClient = overrideClient ??
-        GisSdkClient(
-          clientId: appClientId!,
-          hostedDomain: params.hostedDomain,
-          initialScopes: List<String>.from(params.scopes),
-          loggingEnabled: kDebugMode,
-        );
+    final auth2.GoogleAuth auth = auth2.init(auth2.ClientConfig(
+      hosted_domain: params.hostedDomain,
+      // The js lib wants a space-separated list of values
+      scope: params.scopes.join(' '),
+      client_id: appClientId!,
+      plugin_name: 'dart-google_sign_in_web',
+    ));
 
+    final Completer<void> isAuthInitialized = Completer<void>();
+    _isAuthInitialized = isAuthInitialized.future;
     _isInitCalled = true;
+
+    auth.then(allowInterop((auth2.GoogleAuth initializedAuth) {
+      // onSuccess
+
+      // TODO(ditman): https://github.com/flutter/flutter/issues/48528
+      // This plugin doesn't notify the app of external changes to the
+      // state of the authentication, i.e: if you logout elsewhere...
+
+      isAuthInitialized.complete();
+    }), allowInterop((auth2.GoogleAuthInitFailureError reason) {
+      // onError
+      isAuthInitialized.completeError(PlatformException(
+        code: reason.error,
+        message: reason.details,
+        details:
+            'https://developers.google.com/identity/sign-in/web/reference#error_codes',
+      ));
+    }));
+
+    return _isAuthInitialized;
   }
 
   @override
   Future<GoogleSignInUserData?> signInSilently() async {
     await initialized;
 
-    // Since the new GIS SDK does *not* perform authorization at the same time as
-    // authentication (and every one of our users expects that), we need to tell
-    // the plugin that this failed regardless of the actual result.
-    //
-    // However, if this succeeds, we'll save a People API request later.
-    return _gisClient.signInSilently().then((_) => null);
+    return gapiUserToPluginUserData(
+        auth2.getAuthInstance()?.currentUser?.get());
   }
 
   @override
   Future<GoogleSignInUserData?> signIn() async {
     await initialized;
-
-    // This method mainly does oauth2 authorization, which happens to also do
-    // authentication if needed. However, the authentication information is not
-    // returned anymore.
-    //
-    // This method will synthesize authentication information from the People API
-    // if needed (or use the last identity seen from signInSilently).
     try {
-      return _gisClient.signIn();
-    } catch (reason) {
+      return gapiUserToPluginUserData(await auth2.getAuthInstance()?.signIn());
+    } on auth2.GoogleAuthSignInError catch (reason) {
       throw PlatformException(
-        code: reason.toString(),
-        message: 'Exception raised from signIn',
+        code: reason.error,
+        message: 'Exception raised from GoogleAuth.signIn()',
         details:
-            'https://developers.google.com/identity/oauth2/web/guides/error',
+            'https://developers.google.com/identity/sign-in/web/reference#error_codes_2',
       );
     }
   }
 
   @override
-  Future<GoogleSignInTokenData> getTokens({
-    required String email,
-    bool? shouldRecoverAuth,
-  }) async {
+  Future<GoogleSignInTokenData> getTokens(
+      {required String email, bool? shouldRecoverAuth}) async {
     await initialized;
 
-    return _gisClient.getTokens();
+    final auth2.GoogleUser? currentUser =
+        auth2.getAuthInstance()?.currentUser?.get();
+    final auth2.AuthResponse? response = currentUser?.getAuthResponse();
+
+    return GoogleSignInTokenData(
+        idToken: response?.id_token, accessToken: response?.access_token);
   }
 
   @override
   Future<void> signOut() async {
     await initialized;
 
-    _gisClient.signOut();
+    return auth2.getAuthInstance()?.signOut();
   }
 
   @override
   Future<void> disconnect() async {
     await initialized;
 
-    _gisClient.disconnect();
+    final auth2.GoogleUser? currentUser =
+        auth2.getAuthInstance()?.currentUser?.get();
+
+    if (currentUser == null) {
+      return;
+    }
+
+    return currentUser.disconnect();
   }
 
   @override
   Future<bool> isSignedIn() async {
     await initialized;
 
-    return _gisClient.isSignedIn();
+    final auth2.GoogleUser? currentUser =
+        auth2.getAuthInstance()?.currentUser?.get();
+
+    if (currentUser == null) {
+      return false;
+    }
+
+    return currentUser.isSignedIn();
   }
 
   @override
   Future<void> clearAuthCache({required String token}) async {
     await initialized;
 
-    _gisClient.clearAuthCache();
+    return auth2.getAuthInstance()?.disconnect();
   }
 
   @override
   Future<bool> requestScopes(List<String> scopes) async {
     await initialized;
 
-    return _gisClient.requestScopes(scopes);
+    final auth2.GoogleUser? currentUser =
+        auth2.getAuthInstance()?.currentUser?.get();
+
+    if (currentUser == null) {
+      return false;
+    }
+
+    final String grantedScopes = currentUser.getGrantedScopes() ?? '';
+    final Iterable<String> missingScopes =
+        scopes.where((String scope) => !grantedScopes.contains(scope));
+
+    if (missingScopes.isEmpty) {
+      return true;
+    }
+
+    final Object? response = await currentUser
+        .grant(auth2.SigninOptions(scope: missingScopes.join(' ')));
+
+    return response != null;
   }
 }

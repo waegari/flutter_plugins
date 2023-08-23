@@ -3,12 +3,11 @@
 // found in the LICENSE file.
 
 import 'dart:convert';
-import 'dart:html' as html;
+import 'dart:html';
 
 import 'package:flutter/cupertino.dart';
 import 'package:webview_flutter_platform_interface/webview_flutter_platform_interface.dart';
 
-import 'content_type.dart';
 import 'http_request_factory.dart';
 import 'shims/dart_ui.dart' as ui;
 
@@ -38,10 +37,10 @@ class WebWebViewControllerCreationParams
 
   /// The underlying element used as the WebView.
   @visibleForTesting
-  final html.IFrameElement iFrame = html.IFrameElement()
+  final IFrameElement iFrame = IFrameElement()
     ..id = 'webView${_nextIFrameId++}'
-    ..style.width = '100%'
-    ..style.height = '100%'
+    ..width = '100%'
+    ..height = '100%'
     ..style.border = 'none';
 }
 
@@ -73,37 +72,20 @@ class WebWebViewController extends PlatformWebViewController {
       throw ArgumentError(
           'LoadRequestParams#uri is required to have a scheme.');
     }
-
-    if (params.headers.isEmpty &&
-        (params.body == null || params.body!.isEmpty) &&
-        params.method == LoadRequestMethod.get) {
-      // ignore: unsafe_html
-      _webWebViewParams.iFrame.src = params.uri.toString();
-    } else {
-      await _updateIFrameFromXhr(params);
-    }
-  }
-
-  /// Performs an AJAX request defined by [params].
-  Future<void> _updateIFrameFromXhr(LoadRequestParams params) async {
-    final html.HttpRequest httpReq =
+    final HttpRequest httpReq =
         await _webWebViewParams.httpRequestFactory.request(
       params.uri.toString(),
       method: params.method.serialize(),
       requestHeaders: params.headers,
       sendData: params.body,
     );
-
-    final String header =
+    final String contentType =
         httpReq.getResponseHeader('content-type') ?? 'text/html';
-    final ContentType contentType = ContentType.parse(header);
-    final Encoding encoding = Encoding.getByName(contentType.charset) ?? utf8;
-
     // ignore: unsafe_html
     _webWebViewParams.iFrame.src = Uri.dataFromString(
       httpReq.responseText ?? '',
-      mimeType: contentType.mimeType,
-      encoding: encoding,
+      mimeType: contentType,
+      encoding: utf8,
     ).toString();
   }
 }

@@ -1,7 +1,3 @@
-## 0.2.2
-
-* Updates minimum version to iOS 11.
-
 ## 0.2.1+1
 
 * Add lint ignore comments

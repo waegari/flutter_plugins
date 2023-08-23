@@ -14,9 +14,7 @@ void main() {
     const MethodChannel channel =
         MethodChannel('plugins.flutter.io/url_launcher_ios');
     final List<MethodCall> log = <MethodCall>[];
-    _ambiguate(TestDefaultBinaryMessengerBinding.instance)!
-        .defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+    channel.setMockMethodCallHandler((MethodCall methodCall) async {
       log.add(methodCall);
 
       // Return null explicitly instead of relying on the implicit null
@@ -208,9 +206,3 @@ void main() {
     });
   });
 }
-
-/// This allows a value of type T or T? to be treated as a value of type T?.
-///
-/// We use this so that APIs that have become non-nullable can still be used
-/// with `!` and `?` on the stable branch.
-T? _ambiguate<T>(T? value) => value;

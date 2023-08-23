@@ -34,7 +34,9 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     lintOptions {
-        disable 'AndroidGradlePluginVersion', 'InvalidPackage', 'GradleDependency'
+        disable 'AndroidGradlePluginVersion'
+        disable 'InvalidPackage'
+        disable 'GradleDependency'
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8

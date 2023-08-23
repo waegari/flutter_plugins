@@ -60,10 +60,10 @@ void main() {
       );
       CameraSelector(
           instanceManager: instanceManager,
-          lensFacing: CameraSelector.lensFacingBack);
+          lensFacing: CameraSelector.LENS_FACING_BACK);
 
       verify(
-          mockApi.create(argThat(isA<int>()), CameraSelector.lensFacingBack));
+          mockApi.create(argThat(isA<int>()), CameraSelector.LENS_FACING_BACK));
     });
 
     test('filterTest', () async {
@@ -108,14 +108,14 @@ void main() {
         instanceManager: instanceManager,
       );
 
-      flutterApi.create(0, CameraSelector.lensFacingBack);
+      flutterApi.create(0, CameraSelector.LENS_FACING_BACK);
 
       expect(instanceManager.getInstanceWithWeakReference(0),
           isA<CameraSelector>());
       expect(
           (instanceManager.getInstanceWithWeakReference(0)! as CameraSelector)
               .lensFacing,
-          equals(CameraSelector.lensFacingBack));
+          equals(CameraSelector.LENS_FACING_BACK));
     });
   });
 }

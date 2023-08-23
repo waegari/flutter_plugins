@@ -13,10 +13,8 @@ void main() {
   final FakeStoreKitPlatform fakeStoreKitPlatform = FakeStoreKitPlatform();
 
   setUpAll(() {
-    _ambiguate(TestDefaultBinaryMessengerBinding.instance)!
-        .defaultBinaryMessenger
-        .setMockMethodCallHandler(
-            SystemChannels.platform, fakeStoreKitPlatform.onMethodCall);
+    SystemChannels.platform
+        .setMockMethodCallHandler(fakeStoreKitPlatform.onMethodCall);
   });
 
   test(
@@ -150,9 +148,7 @@ class TestPaymentQueueDelegate extends SKPaymentQueueDelegateWrapper {
 
 class FakeStoreKitPlatform {
   FakeStoreKitPlatform() {
-    _ambiguate(TestDefaultBinaryMessengerBinding.instance)!
-        .defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, onMethodCall);
+    channel.setMockMethodCallHandler(onMethodCall);
   }
 
   // indicate if the payment queue delegate is registered
@@ -170,9 +166,3 @@ class FakeStoreKitPlatform {
     return Future<dynamic>.error('method not mocked');
   }
 }
-
-/// This allows a value of type T or T? to be treated as a value of type T?.
-///
-/// We use this so that APIs that have become non-nullable can still be used
-/// with `!` and `?` on the stable branch.
-T? _ambiguate<T>(T? value) => value;

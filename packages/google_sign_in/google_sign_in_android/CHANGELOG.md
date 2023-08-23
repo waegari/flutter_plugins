@@ -1,6 +1,5 @@
-## 6.1.6
+## NEXT
 
-* Minor implementation cleanup
 * Updates minimum Flutter version to 3.0.
 
 ## 6.1.5

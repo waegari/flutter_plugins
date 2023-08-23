@@ -1,10 +1,5 @@
-## 0.2.0+8
+## NEXT
 
-* Updates espresso and junit dependencies.
-
-## 0.2.0+7
-
-* Updates espresso gradle and gson dependencies.
 * Updates minimum Flutter version to 3.0.
 
 ## 0.2.0+6

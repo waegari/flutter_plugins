@@ -29,9 +29,7 @@ void main() {
   });
 
   test('getAvailableBiometrics', () async {
-    _ambiguate(TestDefaultBinaryMessengerBinding.instance)!
-        .defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, (MethodCall methodCall) {
+    channel.setMockMethodCallHandler((MethodCall methodCall) {
       log.add(methodCall);
       return Future<dynamic>.value(<String>[]);
     });
@@ -51,9 +49,7 @@ void main() {
     // existing unendorsed implementations, used 'undefined' as a special
     // return value from `getAvailableBiometrics` to indicate that nothing was
     // enrolled, but that the hardware does support biometrics.
-    _ambiguate(TestDefaultBinaryMessengerBinding.instance)!
-        .defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, (MethodCall methodCall) {
+    channel.setMockMethodCallHandler((MethodCall methodCall) {
       log.add(methodCall);
       return Future<dynamic>.value(<String>['undefined']);
     });
@@ -72,9 +68,7 @@ void main() {
 
   group('Boolean returning methods', () {
     setUp(() {
-      _ambiguate(TestDefaultBinaryMessengerBinding.instance)!
-          .defaultBinaryMessenger
-          .setMockMethodCallHandler(channel, (MethodCall methodCall) {
+      channel.setMockMethodCallHandler((MethodCall methodCall) {
         log.add(methodCall);
         return Future<dynamic>.value(true);
       });
@@ -204,9 +198,3 @@ void main() {
     });
   });
 }
-
-/// This allows a value of type T or T? to be treated as a value of type T?.
-///
-/// We use this so that APIs that have become non-nullable can still be used
-/// with `!` and `?` on the stable branch.
-T? _ambiguate<T>(T? value) => value;

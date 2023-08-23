@@ -44,24 +44,10 @@ class CameraSelector extends JavaObject {
   late final CameraSelectorHostApiImpl _api;
 
   /// ID for front facing lens.
-  ///
-  /// See https://developer.android.com/reference/androidx/camera/core/CameraSelector#LENS_FACING_FRONT().
-  static const int lensFacingFront = 0;
+  static const int LENS_FACING_FRONT = 0;
 
   /// ID for back facing lens.
-  ///
-  /// See https://developer.android.com/reference/androidx/camera/core/CameraSelector#LENS_FACING_BACK().
-  static const int lensFacingBack = 1;
-
-  /// ID for external lens.
-  ///
-  /// See https://developer.android.com/reference/androidx/camera/core/CameraSelector#LENS_FACING_EXTERNAL().
-  static const int lensFacingExternal = 2;
-
-  /// ID for unknown lens.
-  ///
-  /// See https://developer.android.com/reference/androidx/camera/core/CameraSelector#LENS_FACING_UNKNOWN().
-  static const int lensFacingUnknown = -1;
+  static const int LENS_FACING_BACK = 1;
 
   /// Selector for default front facing camera.
   static CameraSelector getDefaultFrontCamera({
@@ -71,7 +57,7 @@ class CameraSelector extends JavaObject {
     return CameraSelector(
       binaryMessenger: binaryMessenger,
       instanceManager: instanceManager,
-      lensFacing: lensFacingFront,
+      lensFacing: LENS_FACING_FRONT,
     );
   }
 
@@ -83,7 +69,7 @@ class CameraSelector extends JavaObject {
     return CameraSelector(
       binaryMessenger: binaryMessenger,
       instanceManager: instanceManager,
-      lensFacing: lensFacingBack,
+      lensFacing: LENS_FACING_BACK,
     );
   }
 
