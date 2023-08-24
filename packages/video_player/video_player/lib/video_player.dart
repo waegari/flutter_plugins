@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 import 'dart:async';
+import 'dart:developer';
 import 'dart:io';
 import 'dart:math' as math;
 
@@ -434,7 +435,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
     final VideoQuality quality = youtubeVideoQuality ?? VideoQuality.medium360;
 
     String finalYoutubeUrl = dataSource;
-    print('dataSource: $dataSource');
+    log('dataSource: $dataSource');
     if (_getIdFromUrl(dataSource) != null && (isYTLink ?? false)) {
       try {
         Map<String, String> videoUrls = Map();
@@ -495,8 +496,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
     }
 
     if (videoPlayerOptions?.mixWithOthers != null) {
-      print(
-          'videoPlayerOptions.mixWithOthers: ${videoPlayerOptions?.mixWithOthers.toString()}');
+      log('videoPlayerOptions.mixWithOthers: ${videoPlayerOptions?.mixWithOthers.toString()}');
       await _videoPlayerPlatform
           .setMixWithOthers(videoPlayerOptions!.mixWithOthers);
     }
@@ -845,7 +845,7 @@ class _VideoAppLifeCycleObserver extends Object with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // ignore: avoid_print
-    print('AppLifecycleState.paused');
+    log('AppLifecycleState.paused');
     if (state == AppLifecycleState.paused) {
       if (!(_controller.value.size == Size.zero)) {
         _wasPlayingBeforePause = _controller.value.isPlaying;
