@@ -281,8 +281,8 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
     Future<ClosedCaptionFile>? closedCaptionFile,
     this.videoPlayerOptions,
     this.httpHeaders = const <String, String>{},
-       this. youtubeVideoQuality,
-        this.isYTLink,
+    this.youtubeVideoQuality,
+    this.isYTLink,
   })  : _closedCaptionFileFuture = closedCaptionFile,
         dataSourceType = DataSourceType.network,
         package = null,
@@ -297,15 +297,14 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   ///
   /// [httpHeaders] option allows to specify HTTP headers
   /// for the request to the [dataSource].
-  VideoPlayerController.networkUrl(
-    Uri url, {
-    this.formatHint,
-    Future<ClosedCaptionFile>? closedCaptionFile,
-    this.videoPlayerOptions,
-    this.httpHeaders = const <String, String>{},
+  VideoPlayerController.networkUrl(Uri url,
+      {this.formatHint,
+      Future<ClosedCaptionFile>? closedCaptionFile,
+      this.videoPlayerOptions,
+      this.httpHeaders = const <String, String>{},
       this.youtubeVideoQuality,
-      this.isYTLink
-  })  : _closedCaptionFileFuture = closedCaptionFile,
+      this.isYTLink})
+      : _closedCaptionFileFuture = closedCaptionFile,
         dataSource = url.toString(),
         dataSourceType = DataSourceType.network,
         package = null,
@@ -333,7 +332,8 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   /// This will load the video from the input content-URI.
   /// This is supported on Android only.
   VideoPlayerController.contentUri(Uri contentUri,
-      {Future<ClosedCaptionFile>? closedCaptionFile, this.videoPlayerOptions,
+      {Future<ClosedCaptionFile>? closedCaptionFile,
+      this.videoPlayerOptions,
       this.youtubeVideoQuality,
       this.isYTLink})
       : assert(defaultTargetPlatform == TargetPlatform.android,
@@ -349,7 +349,6 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   /// The URI to the video file. This will be in different formats depending on
   /// the [DataSourceType] of the original video.
   final String dataSource;
-
 
   /// youtube video quality, default: VideoQuality.medium360
   final VideoQuality? youtubeVideoQuality;
@@ -404,7 +403,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
       RegExp(r'^https:\/\/youtu\.be\/([_\-a-zA-Z0-9]{11}).*$')
     ];
 
-    if ( url.isEmpty) {
+    if (url.isEmpty) {
       return null;
     }
 
@@ -435,6 +434,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
     final VideoQuality quality = youtubeVideoQuality ?? VideoQuality.medium360;
 
     String finalYoutubeUrl = dataSource;
+    print('dataSource: $dataSource');
     if (_getIdFromUrl(dataSource) != null && (isYTLink ?? false)) {
       try {
         Map<String, String> videoUrls = Map();
@@ -495,6 +495,8 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
     }
 
     if (videoPlayerOptions?.mixWithOthers != null) {
+      print(
+          'videoPlayerOptions.mixWithOthers: ${videoPlayerOptions?.mixWithOthers.toString()}');
       await _videoPlayerPlatform
           .setMixWithOthers(videoPlayerOptions!.mixWithOthers);
     }
@@ -842,13 +844,13 @@ class _VideoAppLifeCycleObserver extends Object with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-        // ignore: avoid_print
-        print('AppLifecycleState.paused');
+    // ignore: avoid_print
+    print('AppLifecycleState.paused');
     if (state == AppLifecycleState.paused) {
-        if (!(_controller.value.size == Size.zero)) {
-          _wasPlayingBeforePause = _controller.value.isPlaying;
-          _controller.pause();
-        }
+      if (!(_controller.value.size == Size.zero)) {
+        _wasPlayingBeforePause = _controller.value.isPlaying;
+        _controller.pause();
+      }
     } else if (state == AppLifecycleState.resumed) {
       if (_wasPlayingBeforePause) {
         _controller.play();
