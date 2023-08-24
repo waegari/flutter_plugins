@@ -435,7 +435,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
     final VideoQuality quality = youtubeVideoQuality ?? VideoQuality.medium360;
 
     String finalYoutubeUrl = dataSource;
-    log('dataSource: $dataSource');
+    log('initial dataSource: $dataSource', name: 'VideoPlayer');
     if (_getIdFromUrl(dataSource) != null && (isYTLink ?? false)) {
       try {
         Map<String, String> videoUrls = Map();
@@ -495,8 +495,10 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
         break;
     }
 
+    log('youtube source url: $finalYoutubeUrl', name: 'VideoPlayer');
     if (videoPlayerOptions?.mixWithOthers != null) {
-      log('videoPlayerOptions.mixWithOthers: ${videoPlayerOptions?.mixWithOthers.toString()}');
+      log('videoPlayerOptions.mixWithOthers: ${videoPlayerOptions?.mixWithOthers.toString()}',
+          name: 'VideoPlayer');
       await _videoPlayerPlatform
           .setMixWithOthers(videoPlayerOptions!.mixWithOthers);
     }
@@ -845,7 +847,7 @@ class _VideoAppLifeCycleObserver extends Object with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // ignore: avoid_print
-    log('AppLifecycleState.paused');
+    log('AppLifecycleState.paused', name: 'VideoPlayer');
     if (state == AppLifecycleState.paused) {
       if (!(_controller.value.size == Size.zero)) {
         _wasPlayingBeforePause = _controller.value.isPlaying;
