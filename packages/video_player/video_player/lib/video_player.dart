@@ -495,7 +495,14 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
         break;
     }
 
-    log('youtube source url: $finalYoutubeUrl', name: 'VideoPlayer');
+    log('youtube source url: ${dataSourceDescription.uri}',
+        name: 'VideoPlayer');
+    log('youtube source type: ${dataSourceDescription.sourceType}',
+        name: 'VideoPlayer');
+    log('youtube format hint: ${dataSourceDescription.formatHint}',
+        name: 'VideoPlayer');
+    log('youtube http headers: ${dataSourceDescription.httpHeaders.toString()}',
+        name: 'VideoPlayer');
     if (videoPlayerOptions?.mixWithOthers != null) {
       log('videoPlayerOptions.mixWithOthers: ${videoPlayerOptions?.mixWithOthers.toString()}',
           name: 'VideoPlayer');
