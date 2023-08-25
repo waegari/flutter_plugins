@@ -517,7 +517,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
       _lifeCycleObserver?.dispose();
     }
     _isDisposed = true;
-    log('VPC IS disposed!!!', name: toString());
+    log('VPC IS DISPOSED', name: toString());
     super.dispose();
   }
 
@@ -777,9 +777,7 @@ class _VideoAppLifeCycleObserver extends Object with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     switch (state) {
       case AppLifecycleState.paused:
-        print('AppLifecycleState.paused');
-        log('VPC is ${_controller._isDisposedOrNotInitialized ? 'NOT ' : ''}disposed',
-            name: toString());
+        log('AppLifecycleState.paused', name: toString());
         if (!(_controller.value.size == Size.zero) &&
             !_controller._isDisposedOrNotInitialized) {
           _wasPlayingBeforePause = _controller.value.isPlaying;
